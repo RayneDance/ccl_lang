@@ -1,0 +1,34 @@
+# logging.ccl
+
+enum LogLevel(String):
+    - DEBUG
+    - INFO
+    - WARN
+    - ERROR
+
+~ LogOutput:
+    type (string): "console"
+    format (string): "text"
+
+~ LoggerConfig:
+    level (LogLevel): LogLevel.INFO
+    outputs (LogOutput):
+        - type: "console"
+          format: "json"
+
+# Example using different string types
+app_logger (LoggerConfig):
+    level: LogLevel.DEBUG
+    
+    # Raw string for file path (Windows style)
+    file_path: @"C:\Logs\App\latest.log"
+    
+    # Multiline string for a message template
+    start_message: """
+        Application Starting...
+        Time: %TIME%
+        Version: 1.0.0
+    """
+    
+    # Single quoted string for a simple literal
+    prefix: '[APP]'

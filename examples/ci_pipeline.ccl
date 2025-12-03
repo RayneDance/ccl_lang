@@ -1,0 +1,50 @@
+# ci_pipeline.ccl
+
+enum TriggerType(String):
+    - Push
+    - PullRequest
+    - Schedule
+
+~ Step:
+    name (string): "step"
+    command (string): "echo 'running'"
+    timeout_seconds (int): 600
+
+~ Job:
+    name (string): "job"
+    runs_on (string): "ubuntu-latest"
+    steps (Step):
+        - name: "Checkout"
+          command: "git checkout"
+
+~ Pipeline:
+    name (string): "CI Pipeline"
+    triggers (TriggerType):
+        - TriggerType.Push
+    jobs (Job):
+        - name: "Build"
+          steps:
+            - name: "Install Deps"
+              command: "npm install"
+            - name: "Build App"
+              command: "npm run build"
+
+# Instantiate the pipeline
+main_pipeline (Pipeline):
+    name: "Main Branch CI"
+    triggers:
+        - TriggerType.Push
+        - TriggerType.PullRequest
+    
+    jobs:
+        - name: "Test"
+          steps:
+            - name: "Run Tests"
+              command: "npm test"
+              timeout_seconds: 300
+        
+        - name: "Deploy"
+          runs_on: "ubuntu-20.04"
+          steps:
+            - name: "Deploy to Staging"
+              command: "./deploy.sh staging"

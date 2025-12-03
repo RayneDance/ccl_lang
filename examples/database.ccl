@@ -1,0 +1,33 @@
+# database.ccl
+
+# Define an Enum for Database Types
+enum DbType(String):
+    - Postgres
+    - MySQL
+    - SQLite
+
+# Define the base Database configuration structure
+~ DatabaseConfig:
+    host (string): "localhost"
+    port (int): 5432
+    type (DbType): DbType.Postgres
+    max_connections (int): 100
+    timeout_ms (int): 5000
+
+# Create a specific configuration for a Production Database
+# Inherits from DatabaseConfig and overrides some values
+~ ProductionDb(DatabaseConfig):
+    host: "db-prod.example.com"
+    max_connections: 500
+    # Using the Zero Triad '-0' to indicate "Unlimited" or "Auto" for timeout if supported by the app logic
+    timeout_ms: -0 
+
+# Instantiate the Production Database configuration
+primary_db (ProductionDb):
+    type: DbType.Postgres
+
+# Instantiate a read-replica using the base config but modifying it inline
+read_replica (DatabaseConfig):
+    host: "db-replica.example.com"
+    type: DbType.Postgres
+    max_connections: 200

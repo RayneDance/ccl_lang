@@ -1,0 +1,42 @@
+# webserver.ccl
+
+$default_port = 8080
+
+~ Route:
+    path (string): "/"
+    handler (string): "index"
+    methods (string): "GET"
+
+~ VirtualHost:
+    domain (string): "localhost"
+    ssl_enabled (bool): False
+    # Composition: List of Route structs
+    routes (Route):
+        - path: "/api"
+          handler: "api_handler"
+          methods: "GET,POST"
+        - path: "/static"
+          handler: "static_files"
+
+~ WebServerConfig:
+    port (int): $default_port
+    workers (int): 4
+    # Map of VirtualHosts
+    hosts:
+        main_site:
+            domain: "example.com"
+            ssl_enabled: True
+            routes:
+                - path: "/"
+                  handler: "home"
+        
+        admin_panel:
+            domain: "admin.example.com"
+            ssl_enabled: True
+            routes:
+                - path: "/dashboard"
+                  handler: "admin_dashboard"
+
+# Instantiate the server config
+my_server (WebServerConfig):
+    workers: 8
