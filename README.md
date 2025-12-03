@@ -1,90 +1,82 @@
-CCL Language Specification 1.5
+# CCL Language Specification 1.5
 
-Full Name: Composable Configuration Language
+**Full Name:** Composable Configuration Language
 
-Extension: .ccl
+**Extension:** `.ccl`
 
-MIME: application/ccl
+**MIME:** `application/ccl`
 
-1. Core Philosophy
+## 1. Core Philosophy
 
 CCL is designed to be human-readable first while enforcing type safety and reusability. It bridges the gap between loose formats (YAML/JSON) and strict configuration languages (CUE/Jsonnet).
 
-2. General Syntax
+## 2. General Syntax
 
-2.1 Comments
+### 2.1 Comments
 
-Comments begin with # and continue to the end of the line.
+Comments begin with `#` and continue to the end of the line.
 
-Rule: Any character sequence starting with # that is not contained within a string literal is strictly treated as a comment.
+**Rule:** Any character sequence starting with `#` that is not contained within a string literal is strictly treated as a comment.
 
+```ccl
 # This is a comment
 key: "value" # This is inline
-url: "[http://example.com/#anchor](http://example.com/#anchor)" # This is NOT a comment (inside string)
+url: "http://example.com/#anchor" # This is NOT a comment (inside string)
+```
 
+### 2.2 Variables
 
-2.2 Variables
+Variables are mutable references defined using `$`.
 
-Variables are mutable references defined using $.
+- **Scope:** Variables are file-scoped by default.
+- **Export:** Variables must be explicitly exported to be available to importers.
+- **Assignment:** `$varName = value`
 
-Scope: Variables are file-scoped by default.
-
-Export: Variables must be explicitly exported to be available to importers.
-
-Assignment: $varName = value
-
+```ccl
 $ver = 1.0
 export $ver
+```
 
+## 3. Data Types
 
-3. Data Types
-
-3.1 Reserved Keywords (Case Insensitive)
+### 3.1 Reserved Keywords (Case Insensitive)
 
 The following tokens have strict semantic meaning and cannot be used as unquoted strings:
 
-True / False (Boolean)
+- `True` / `False` (Boolean)
+- `None` (Explicit Void/Null)
 
-None (Explicit Void/Null)
-
-3.2 Numbers
+### 3.2 Numbers
 
 Numbers are unencapsulated.
 
-Integer: 123, -5
+- **Integer:** `123`, `-5`
+- **Float:** `123.45`, `1.0`
 
-Float: 123.45, 1.0
+**The Zero Triad:**
 
-The Zero Triad:
+- `0` : The numeric integer zero.
+- `-0` : Semantic "Empty Number". Represents "Auto", "Unlimited", or "Reset to Default".
+- `None`: Absence of value.
 
-0 : The numeric integer zero.
-
--0 : Semantic "Empty Number". Represents "Auto", "Unlimited", or "Reset to Default".
-
-None: Absence of value.
-
-3.3 Strings
+### 3.3 Strings
 
 Strings must be encapsulated. Bare (unquoted) strings are invalid syntax, with one strict exception (see 4.2 Enums).
 
-Double Quoted: "Hello World" (Supports standard escape sequences \n, \t, \").
+- **Double Quoted:** `"Hello World"` (Supports standard escape sequences `\n`, `\t`, `\"`).
+- **Single Quoted:** `'Hello World'` (Literal string, minimal escaping).
+- **Raw String:** `@"C:\Path\To\File"` (Prefix with `@`. treats backslashes as literals. No escape sequences processed. Use `""` to represent a double quote).
 
-Single Quoted: 'Hello World' (Literal string, minimal escaping).
+**Multiline (Triple Quote Block):**
 
-Raw String: @"C:\Path\To\File" (Prefix with @. treats backslashes as literals. No escape sequences processed. Use "" to represent a double quote).
+- Encapsulated by `"""`.
+- The opening `"""` must be followed immediately by a Newline.
+- The closing `"""` must be on its own line.
+- **Indentation:** The indentation of the first line of content defines the baseline. All subsequent lines are trimmed relative to that baseline.
 
-Multiline (Triple Quote Block):
+**String Usage Guide**
 
-Encapsulated by """.
-
-The opening """ must be followed immediately by a Newline.
-
-The closing """ must be on its own line.
-
-Indentation: The indentation of the first line of content defines the baseline. All subsequent lines are trimmed relative to that baseline.
-
-String Usage Guide
-
+```ccl
 # 1. Double Quoted (Standard)
 # Best for text requiring format control or Unicode.
 greeting: "Hello\nWorld"       # Parsed as two lines
@@ -109,30 +101,27 @@ description: """
     This text is left-aligned.
     The indentation matches the start of "This".
 """
+```
 
+## 4. Structures & Enums
 
-4. Structures & Enums
+### 4.1 Struct Definition (~)
 
-4.1 Struct Definition (~)
+The struct definition uses the `~` symbol.
 
-The struct definition uses the ~ symbol.
+- **Syntax:** `~ Name:`
+- **Inheritance:** `~ Child(Parent):`
+- **Fields:** `name (type): default_value`
 
-Syntax: ~ Name:
+### 4.2 Enum Definition (enum)
 
-Inheritance: ~ Child(Parent):
+Enums must explicitly declare their backing type: `(Int)` or `(String)`.
 
-Fields: name (type): default_value
+- **Auto Mode (Int):** Values are auto-incremented integers starting at 0.
+- **Auto Mode (String):** The identifier itself becomes the string value. This is the only place in CCL where unencapsulated text is treated as a string.
+- **Defined Mode:** Explicit key-value mapping overrides auto behavior.
 
-4.2 Enum Definition (enum)
-
-Enums must explicitly declare their backing type: (Int) or (String).
-
-Auto Mode (Int): Values are auto-incremented integers starting at 0.
-
-Auto Mode (String): The identifier itself becomes the string value. This is the only place in CCL where unencapsulated text is treated as a string.
-
-Defined Mode: Explicit key-value mapping overrides auto behavior.
-
+```ccl
 # Auto Mode (Int)
 # Values: Left=0, Right=1, Up=2
 enum Direction(Int):
@@ -153,20 +142,19 @@ enum LogLevel(String):
 enum Roles(String):
     - Admin: "administrator"
     - Guest: "guest"
+```
 
+### 4.3 Syntax Disambiguation
 
-4.3 Syntax Disambiguation
+- `~`: Exclusively for Struct Definitions.
+- `enum`: Exclusively for Enumeration Definitions.
+- `"""`: Exclusively for Multiline Strings.
 
-~: Exclusively for Struct Definitions.
-
-enum: Exclusively for Enumeration Definitions.
-
-""": Exclusively for Multiline Strings.
-
-4.4 Bare Implementation
+### 4.4 Bare Implementation
 
 It is not required to define a struct to create data. You may write "bare" lists and maps.
 
+```ccl
 # Bare Map (Key-Value)
 server:
     port: 8080
@@ -183,12 +171,13 @@ users:
       role: "admin"
     - name: "Bob"
       role: "editor"
+```
 
+### 4.5 Typed Implementation
 
-4.5 Typed Implementation
+To enforce schema validation, use the `key (Type):` syntax.
 
-To enforce schema validation, use the key (Type): syntax.
-
+```ccl
 ~ ServerConfig:
     port (int): 80
     host (string): "0.0.0.0"
@@ -197,41 +186,42 @@ To enforce schema validation, use the key (Type): syntax.
 my_server (ServerConfig):
     port: 8080
     # 'host' uses default
+```
 
+## 5. Composition & Inheritance Rules
 
-5. Composition & Inheritance Rules
-
-5.1 Inheritance
+### 5.1 Inheritance
 
 Inheritance performs a deep merge of the schema.
 
-Parent fields are copied to the Child.
+1. Parent fields are copied to the Child.
+2. Overrides in the Child definition replace Parent defaults.
+3. New fields are appended.
 
-Overrides in the Child definition replace Parent defaults.
-
-New fields are appended.
-
+```ccl
 ~ Base:
     id (int): 1
 
 ~ Extended(Base):
     name (string): "util"
+```
 
-
-5.2 Composition
+### 5.2 Composition
 
 Fields within a Struct can be typed as other Structs.
 
+```ccl
 ~ Database:
     driver: "postgres"
 
 ~ App:
     db (Database):
         driver: "mysql" # Override default during composition
+```
 
+## 6. Example Document
 
-6. Example Document
-
+```ccl
 # global_config.ccl
 
 $standard_timeout = 30
@@ -280,3 +270,4 @@ main_gateway (HttpConnection):
 feature_flags:
     beta_access: False   # Boolean
     legacy_mode: None    # Null type
+```
